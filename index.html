@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Penerjemah dan Sinonim</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #2c3e50;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .tab {
+            padding: 15px 30px;
+            background-color: #34495e;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab:hover {
+            background-color: #1abc9c;
+        }
+        .active-tab {
+            background-color: #1abc9c;
+            font-weight: bold;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: 60%;
+            margin: auto;
+            display: none;
+        }
+        .container.active {
+            display: block;
+        }
+        textarea {
+            width: 90%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #ffcc00;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #ffaa00;
+        }
+        select {
+            margin-bottom: 10px;
+            padding: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+        <div class="tab active-tab" onclick="changeTab(0)">Penerjemah Indonesia ⇄ Jerman</div>
+        <div class="tab" onclick="changeTab(1)">Sinonim Kata Bahasa Jerman</div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="container active" id="translatorTab">
+        <h2>Penerjemah Indonesia ⇄ Jerman</h2>
+        <select id="languagePair">
+            <option value="id|de">Indonesia ke Jerman</option>
+            <option value="de|id">Jerman ke Indonesia</option>
+        </select>
+        <button onclick="swapLanguage()">🔄 Tukar Bahasa</button><br>
+        <textarea id="inputText" placeholder="Masukkan teks..."></textarea><br>
+        <button onclick="translateText()">Terjemahkan</button>
+        <button onclick="copyResult()">📋 Salin Hasil</button>
+        <button onclick="speakTranslation()">🔊 Dengarkan</button>
+        <button onclick="clearText()">❌ Hapus Teks</button>
+        <h3>Hasil:</h3>
+        <textarea id="outputText" readonly></textarea>
+        <p id="statusMessage"></p>
+    </div>
+
+    <div class="container" id="synonymTab">
+        <h2>Program Sinonim Kata Bahasa Jerman</h2>
+        <input type="text" id="wordInput" placeholder="Masukkan kata dalam bahasa Jerman">
+        <button onclick="findSynonym()">Cari Sinonim</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Tab Switching Functionality
+        function changeTab(tabIndex) {
+            let tabs = document.querySelectorAll(".tab");
+            let containers = document.querySelectorAll(".container");
+            
+            tabs.forEach((tab, index) => {
+                if (index === tabIndex) {
+                    tab.classList.add("active-tab");
+                    containers[index].classList.add("active");
+                } else {
+                    tab.classList.remove("active-tab");
+                    containers[index].classList.remove("active");
+                }
+            });
+        }
+
+        // Penerjemah Indonesia ⇄ Jerman
+        function swapLanguage() {
+    let select = document.getElementById("languagePair");
+    select.value = select.value === "id|de" ? "de|id" : "id|de";
+
+    let inputField = document.getElementById("inputText");
+    let outputField = document.getElementById("outputText");
+
+    let temp = inputField.value;
+    inputField.value = outputField.value;
+    outputField.value = temp;
+
+    translateText();
+}
+
+        function translateText() {
+            const text = document.getElementById("inputText").value.trim();
+            const languagePair = document.getElementById("languagePair").value;
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${languagePair}`;
+            const statusMessage = document.getElementById("statusMessage");
+
+            if (text === "") {
+                statusMessage.innerText = "Masukkan teks untuk diterjemahkan.";
+                return;
+            }
+
+            statusMessage.innerText = "Menerjemahkan...";
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.responseData && data.responseData.translatedText) {
+                        document.getElementById("outputText").value = data.responseData.translatedText;
+                        statusMessage.innerText = "Terjemahan berhasil.";
+                    } else {
+                        statusMessage.innerText = "Gagal menerjemahkan. Coba lagi nanti.";
+                    }
+                })
+                .catch(() => statusMessage.innerText = "Terjadi kesalahan dalam penerjemahan.");
+        }
+
+        function copyResult() {
+            const outputText = document.getElementById("outputText");
+            outputText.select();
+            document.execCommand("copy");
+        }
+
+        function speakTranslation() {
+            const outputText = document.getElementById("outputText").value;
+            const languagePair = document.getElementById("languagePair").value;
+            let lang = languagePair === "id|de" ? "de-DE" : "id-ID";
+            let speech = new SpeechSynthesisUtterance(outputText);
+            speech.lang = lang;
+            window.speechSynthesis.speak(speech);
+        }
+
+        function clearText() {
+            document.getElementById("inputText").value = "";
+            document.getElementById("outputText").value = "";
+            document.getElementById("statusMessage").innerText = "";
+        }
+
+        // Sinonim Kata Bahasa Jerman
+        const synonyms = {
+    "abenteuer": ["erlebnis", "erfahrung", "reise", "tour"],
+    "absturz": ["niederlage", "pleite", "zusammenbruch", "fall"],
+    "aktion": ["handeln", "bewegung", "vorgehen", "unternehmung"],
+    "alltag": ["routine", "tagesgeschäft", "normalität", "gewohnheit"],
+    "antwort": ["rückmeldung", "replik", "antwortschreiben", "reaktion"],
+    "arbeitsplatz": ["stelle", "position", "job", "stelle"],
+    "aufgabe": ["mission", "aufträgen", "ziel", "pflicht"],
+    "aufruf": ["appell", "bitte", "forderungsruf", "aufforderung"],
+    "ausbildung": ["lehre", "schule", "studium", "training"],
+    "ausdruck": ["formulierung", "wortwahl", "rede", "sprachgebrauch"],
+    "autonomie": ["unabhängigkeit", "selbstbestimmung", "freiheit", "selbstständigkeit"],
+    "begriff": ["konzept", "ideologie", "bezeichung", "terminus"],
+    "behauptung": ["aussage", "meinung", "einwand", "feststellung"],
+    "behandlung": ["pflege", "versorgung", "therapie", "kur"],
+    "belohnung": ["auszeichnung", "preis", "vergütung", "honorar"],
+    "bestimmung": ["regel", "vorschrift", "ordnung", "gesetz"],
+    "bewusstsein": ["klarheit", "wahrnehmung", "einsicht", "verständnis"],
+    "bildung": ["erziehung", "lehre", "bildungssystem", "schule"],
+    "bote": ["kurier", "boten", "nachrichtenträger", "überbringer"],
+    "brücke": ["stege", "verbinding", "balken", "brückenbau"],
+    "durchbruch": ["erfolg", "fortschritt", "leistung", "entdeckung"],
+    "einladung": ["aufforderung", "bitte", "gebet", "ladung"],
+    "einheit": ["zusammenhalt", "vereinheitlichung", "harmonie", "solidarität"],
+    "einfluss": ["wirkung", "auswirkung", "kraft", "mächtigkeit"],
+    "elf": ["elfer", "elfer", "elfen", "elfer"],
+    "empathie": ["mitgefühl", "fühlende", "verständnis", "teilnahme"],
+    "enttäuschung": ["misserfolg", "entmutigung", "frustration", "niederlage"],
+    "erfahrung": ["wissen", "kenntnis", "praxis", "bildung"],
+    "ereignis": ["vorfall", "geschehen", "begebenheit", "ereignis"],
+    "erinnerung": ["gedächtnis", "erinnerung", "nachdenken", "nachhall"],
+    "fabel": ["märchen", "geschichte", "legende", "mythos"],
+    "fahndung": ["suche", "spürsinn", "verfolgung", "forschen"],
+    "fehler": ["mangel", "defekt", "unzulänglichkeit", "verstoß"],
+    "ferne": ["entfernung", "distance", "abstand", "fernweg"],
+    "freiheit": ["unabhängigkeit", "autonomie", "freiheit", "selbstständigkeit"],
+    "freundschaft": ["kameradschaft", "kollegialität", "bindung", "gemeinschaft"],
+    "frieden": ["ruhe", "eintracht", "stillstand", "friedlich"],
+    "frustration": ["enttäuschung", "verärgerung", "ärger", "entmutigung"],
+    "gefühl": ["emotion", "empfindung", "gefühlsregung", "wertgefühl"],
+    "gebäude": ["haus", "wohnhaus", "bauwerk", "unterkunft"],
+    "geschenk": ["überraschung", "gabe", "präsent", "aufmerksamkeit"],
+    "gesellschaft": ["gemeinschaft", "gemeinschaft", "kultur", "gruppe"],
+    "gesicht": ["antlitz", "ausdruck", "visage", "mimik"],
+    "gestalt": ["figur", "form", "gestalt", "erscheinung"],
+    "gesellschaft": ["gemeinde", "gesellschaft", "zusammenschluss", "verband"],
+    "grenze": ["schranke", "begrenzung", "rand", "linie"],
+    "hass": ["abneigung", "feindseligkeit", "antipathie", "verachtung"],
+    "helligkeit": ["glanz", "strahl", "licht", "lumineszenz"],
+    "hilfe": ["unterstützung", "beistand", "hilfeleistung", "assistenz"],
+    "haus": ["wohnung", "gebäude", "unterkunft", "residenz"],
+    "höhe": ["gipfel", "höhepunkt", "höhe", "berg"],
+    "inspiration": ["anregung", "idee", "anreiz", "motiv"],
+    "interesse": ["neugier", "aufmerksamkeit", "zustimmung", "engagement"],
+    "karriere": ["berufslaufbahn", "laufbahn", "beruf", "laufbahn"],
+    "kreativität": ["erfindungsreichtum", "ideenreichtum", "einfallsreichtum", "geist"],
+    "kritik": ["rückmeldung", "bewertung", "anmerkung", "einwand"],
+    "konflikt": ["streit", "auseinandersetzung", "problem", "zoff"],
+    "kontrolle": ["überwachung", "beobachtung", "steuerung", "aufsicht"],
+    "kosten": ["preis", "aufwand", "ausgabe", "gebühr"],
+    "leistung": ["erfolg", "resultat", "ergebnis", "auszeichnung"],
+    "liebe": ["zuneigung", "romantik", "verliebtheit", "gefühle"],
+    "lärm": ["geräusch", "lärm", "tosen", "krach"],
+    "meinung": ["sichtweise", "auffassung", "standpunkt", "überzeugung"],
+    "mensch": ["person", "individuum", "wesen", "menschheit"],
+    "moral": ["ethik", "prinzip", "wert", "anstand"],
+    "nachricht": ["botschaft", "mitteilung", "message", "informationen"],
+    "nachhaltigkeit": ["beständigkeit", "dauerhaftigkeit", "zukunftsfähigkeit", "ressourcenschonung"],
+    "opfer": ["geopferte", "verletzte", "betroffene", "überlebende"],
+    "ordnung": ["struktur", "system", "regel", "plan"],
+    "potential": ["kapazität", "fähigkeit", "kraft", "vermögen"],
+    "problem": ["anliegen", "hürde", "schwierigkeit", "problemstellung"],
+    "programm": ["plan", "ablauf", "aktivität", "veranstaltung"],
+    "rätsel": ["geheimnis", "frage", "knobelei", "problem"],
+    "ruhe": ["stillstand", "entspannung", "gelassenheit", "ruhephase"],
+    "schaden": ["verlust", "zerstörung", "beeinträchtigung", "schädigung"],
+    "sicht": ["blick", "perspektive", "ansicht", "ansicht"],
+    "spiegel": ["reflexion", "bild", "abbildung", "widerspiegelung"],
+    "spannung": ["anspannung", "spannung", "erregung", "druck"],
+    "stärke": ["kraft", "power", "intensität", "potenz"],
+    "schule": ["bildungsstätte", "lehranstalt", "akademie", "unterricht"],
+    "sicherheit": ["schutz", "sicherung", "garantie", "frieden"],
+    "situation": ["lage", "zustand", "verhältnisse", "stellung"],
+    "solidarität": ["gemeinschaft", "zusammenhalt", "einigkeit", "hilfe"],
+    "toleranz": ["akzeptanz", "offenheit", "verständnis", "respekt"],
+    "überraschung": ["staunen", "erstaunen", "überraschung", "überraschungseffekt"],
+    "vorteil": ["nutzen", "mehrwert", "gewinn", "privileg"],
+    "vorstellung": ["idee", "konzept", "vision", "gedanken"],
+    "wahrheit": ["fakt", "realität", "wirklichkeit", "tatbestand"],
+    "zufriedenheit": ["freude", "glück", "vollendung", "heilung"],
+    "abstimmung": ["meinungsfindung", "einvernehmen", "koordinierung", "abgleich"],
+    "akzeptanz": ["zustimmung", "anerkentnis", "einverständnis", "billigung"],
+    "alleinsein": ["einsamkeit", "verlassenheit", "isolierung", "abgeschiedenheit"],
+    "angst": ["furcht", "besorgnis", "panik", "nervosität"],
+    "aufmerksamkeit": ["fokus", "interesse", "wahrnehmung", "beachtung"],
+    "auswahl": ["entscheidung", "option", "möglichkeit", "variation"],
+    "bedeutung": ["wichtigkeit", "sinn", "wert", "relevanz"],
+    "begrüßung": ["empfang", "wilkommen", "hallo", "grüßung"],
+    "belastung": ["druck", "anstrengung", "belastung", "stress"],
+    "beziehung": ["verhältnis", "partnerschaft", "bindung", "kontakt"],
+    "buch": ["werk", "literatur", "schrift", "text"],
+    "dauer": ["zeit", "periode", "phase", "intervall"],
+    "einheit": ["vereinheitlichung", "standardisierung", "harmonie", "kohärenz"],
+    "ergebnis": ["resultat", "schlussfolgerung", "ausgang", "auswertung"],
+    "feier": ["fest", "party", "veranstaltung", "zeremonie"],
+    "gefühl": ["empfindung", "emotion", "innerer zustand", "gefühlserlebnis"],
+    "geschenk": ["präsent", "überraschung", "gabe", "aufmerksamkeit"],
+    "gesellschaft": ["gemeinschaft", "kultur", "gruppe", "assoziation"],
+    "horizont": ["blickfeld", "perspektive", "sichtweise", "bereich"],
+    "hunger": ["verlangen", "appetit", "nahrungsdrang", "hungergefühl"],
+    "ideologie": ["weltanschauung", "lehre", "glaube", "doktrin"],
+    "infrastruktur": ["struktur", "netzwerk", "system", "bauwerk"],
+    "komplexität": ["schwierigkeit", "vielfalt", "komplikation", "vielschichtigkeit"],
+    "kritik": ["bewertung", "anmerkung", "rückmeldung", "einwand"],
+    "liebe": ["zuneigung", "romantik", "sympathie", "bindung"],
+    "meinung": ["sichtweise", "auffassung", "ansicht", "perspektive"],
+    "motivation": ["anreiz", "antrieb", "impuls", "energie"],
+    "schwierigkeit": ["problem", "hindernis", "hürde", "barriere"],
+    "spiritualität": ["glaube", "religiöses leben", "transzendenz", "innere ruhe"],
+    "zukunft": ["zeit", "ausblick", "entwicklungsrichtung", "voraussicht"],  
+    "abenteuerlust": ["entdeckungsdrang", "reiselust", "neugier", "erlebnisdrang"], 
+    "abwesenheit": ["fernbleiben", "nichtanwesenheit", "fehlzeit", "abstand"],
+    "achtung": ["respekt", "anerkennung", "wertschätzung", "beachtung"], 
+    "affäre": ["liebesverhältnis", "skandal", "zwischenfall", "beziehung"],
+    "anpassung": ["modifikation", "veränderung", "anlehnung", "angleichung"],
+    "anspruch": ["forderung", "recht", "anliegen", "bedürfnis"],
+    "anstrengung": ["mühe", "aufwand", "belastung", "einsatz"],
+    "antworten": ["erwidern", "reagieren", "entgegnen", "erklären"],
+    "arbeit": ["tätigkeit", "job", "beruf", "aufgabe"],
+    "architektur": ["baukunst", "bauweise", "struktur", "gestalt"],
+    "ärger": ["zorn", "wut", "verdruss", "frust"],
+    "aufregung": ["nervosität", "erregung", "unruhe", "spannung"],
+    "ausflug": ["reise", "tour", "trip", "fahrt"],
+    "ausdruck": ["mimik", "gestik", "formulierung", "redeweise"],
+    "aussicht": ["blick", "perspektive", "ausblick", "überblick"],
+    "ausweg": ["lösung", "fluchtweg", "möglichkeit", "rettung"],
+    "balance": ["gleichgewicht", "stabilität", "harmonie", "ausgewogenheit"],
+    "bedrohung": ["gefahr", "risiko", "angriff", "warnung"],
+    "begegnung": ["treffen", "zusammentreffen", "kontakt", "konfrontation"],
+    "beitrag": ["anteil", "spende", "unterstützung", "leistung"],
+    "bekanntschaft": ["verbindung", "kontakt", "freundschaft", "beziehung"],
+    "bereich": ["gebiet", "zone", "sektor", "feld"],
+    "berufung": ["mission", "berufsziel", "berufswunsch", "aufgabe"],
+    "beschwerde": ["klage", "kritik", "protest", "einwand"],
+    "besitz": ["eigentum", "habseligkeit", "vermögen", "gut"],
+    "beweis": ["nachweis", "argument", "begründung", "hinweis"],
+    "beziehung": ["verbindung", "verhältnis", "kontakt", "partnerschaft"],
+    "bild": ["abbildung", "grafik", "zeichnung", "foto"],
+    "botschaft": ["nachricht", "mitteilung", "information", "kunde"],
+    "chance": ["gelegenheit", "möglichkeit", "option", "aussicht"],
+    "chaos": ["unordnung", "durcheinander", "wirrwarr", "verwirrung"],
+    "dauerhaftigkeit": ["beständigkeit", "stabilität", "kontinuität", "langlebigkeit"],
+    "debatte": ["diskussion", "streitgespräch", "austausch", "gespräch"],
+    "denkweise": ["einstellung", "perspektive", "sichtweise", "ansicht"],
+    "detail": ["einzelheit", "aspekt", "komponente", "element"],
+    "druck": ["belastung", "spannung", "zwang", "beanspruchung"],
+    "ehrlichkeit": ["wahrhaftigkeit", "aufrichtigkeit", "offenheit", "redlichkeit"],
+    "eifer": ["begeisterung", "leidenschaft", "engagement", "einsatz"],
+    "eindruck": ["wirkung", "empfinden", "gefühl", "vorstellung"],
+    "einflussnahme": ["beeinflussung", "steuerung", "lenkung", "kontrolle"],
+    "einsicht": ["verständnis", "erkenntnis", "realisation", "überblick"],
+    "einsparung": ["reduktion", "verringerung", "abzug", "verzicht"],
+    "empfehlung": ["rat", "hinweis", "vorschlag", "beratung"],
+    "entdeckung": ["fund", "erkenntnis", "aufdeckung", "enthüllung"],
+    "entscheidung": ["wahl", "auswahl", "urteil", "schlussfolgerung"],
+    "entwicklung": ["wachstum", "prozess", "verlauf", "fortschritt"],
+    "erfolg": ["triumph", "sieg", "leistung", "gewinn"],
+    "erholung": ["entspannung", "ruhe", "pause", "regeneration"],
+    "erinnerung": ["gedenken", "nachdenken", "rückblick", "memoire"],
+    "ernährung": ["kost", "speise", "diät", "nahrungsaufnahme"],
+    "fahrt": ["reise", "fahrtweg", "ausflug", "tour"],
+    "fähigkeit": ["kompetenz", "talent", "begabung", "veranlagung"],
+    "feind": ["gegner", "widersacher", "antagonist", "rival"],
+    "forschung": ["untersuchung", "studie", "analyse", "experiment"],
+    "frage": ["anfrage", "problemstellung", "thema", "diskussion"],
+    "freiheit": ["unabhängigkeit", "selbstbestimmung", "freiheitlichkeit", "autonomie"],
+    "freund": ["kamerad", "kollege", "begleiter", "partner"],
+    "gefühl": ["emotion", "empfindung", "stimmung", "innere regung"],
+    "gemeinschaft": ["gruppe", "verband", "kollektiv", "gemeinschaftlichkeit"],
+    "geschichte": ["erzählung", "bericht", "historie", "narrativ"],
+    "gesundheit": ["wohlbefinden", "kondition", "körperzustand", "vitalität"],
+    "glück": ["zufriedenheit", "freude", "erfolg", "wohlbefinden"],
+    "handlung": ["aktivität", "maßnahme", "prozess", "tat"],
+    "hilfe": ["unterstützung", "beistand", "assistenz", "beihilfe"],
+    "hoffnung": ["erwartung", "sehnsucht", "zuversicht", "ausblick"],
+    "idee": ["gedanke", "einfall", "konzept", "plan"],
+    "identität": ["selbstbild", "wesen", "persönlichkeit", "charakter"],
+    "initiative": ["anstoß", "bewegung", "projekt", "impuls"],
+    "intelligenz": ["klugheit", "verstand", "schläue", "geist"],
+    "jugend": ["teenagerzeit", "kindheit", "nachwuchs", "jugendalter"],
+    "kälte": ["frost", "kühlung", "temperaturrückgang", "eisigkeit"],
+    "klima": ["wetterlage", "atmosphäre", "wetter", "umweltbedingungen"],
+    "kommunikation": ["austausch", "gespräch", "dialog", "verbindung"],
+    "konzentration": ["fokus", "aufmerksamkeit", "sammlung", "gedankenbündelung"],
+    "kreativität": ["einfallsreichtum", "phantasie", "innovation", "erfindungsgabe"],
+    "lachen": ["heiterkeit", "belustigung", "freude", "amüsement"],
+    "leben": ["existenz", "dasein", "alltag", "lebensweise"],
+    "leidenschaft": ["hingabe", "eifer", "begeisterung", "enthusiasmus"],
+    "licht": ["strahlung", "leuchten", "helligkeit", "schein"],
+    "lösung": ["antwort", "ergebnis", "weg", "schlüssel"],
+    "meinung": ["einstellung", "standpunkt", "sichtweise", "auffassung"],
+    "möglichkeit": ["chance", "option", "gelegenheit", "alternative"],
+    "natur": ["umwelt", "landschaft", "erde", "naturwelt"],
+    "ordnung": ["struktur", "regelwerk", "ordnungssystem", "ordnungsliebe"],
+    "problem": ["schwierigkeit", "herausforderung", "hindernis", "frage"],
+    "qualität": ["wert", "eigenschaft", "niveau", "beschaffenheit"],
+    "reichtum": ["vermögen", "wohlstand", "besitz", "überfluss"],
+    "respekt": ["achtung", "wertschätzung", "anerkennung", "ehrfurcht"],
+    "ruhe": ["stille", "entspannung", "friedlichkeit", "gelassenheit"],
+    "schicksal": ["fatum", "los", "bestimmung", "zukunft"],
+    "schönheit": ["ästhetik", "reiz", "hübschheit", "attraktivität"],
+    "sinn": ["bedeutung", "zweck", "intention", "gedanke"],
+    "spannung": ["erregung", "nervosität", "konflikt", "unsicherheit"],
+    "stimmung": ["atmosphäre", "laune", "gefühl", "ton"],
+    "tätigkeit": ["arbeit", "aufgabe", "beruf", "handlung"],
+    "traum": ["wunsch", "vision", "sehnsucht", "vorstellung"],
+    "veränderung": ["wandel", "modifikation", "anpassung", "umstellung"],
+    "verständnis": ["einsicht", "kenntnis", "erkenntnis", "bewusstsein"],
+    "vertrauen": ["glaube", "sicherheit", "zuversicht", "verlässlichkeit"],
+    "wahrnehmung": ["sicht", "blick", "verständnis", "auffassung"],
+    "denken": ["überlegen", "nachdenken", "grübeln"],
+    "schnell": ["rasch", "flink", "zügig"],
+    "langsam": ["träge", "bedächtig", "gemächlich"],
+    "freundlich": ["nett", "höflich", "liebenswürdig"],
+    "ärgerlich": ["wütend", "verärgert", "zornig"],
+    "reden": ["sprechen", "plaudern", "unterhalten"],
+    "beginnen": ["anfangen", "starten", "einleiten"],
+    "essen": ["verzehren", "speisen", "nagen"],
+    "trinken": ["saufen", "schlürfen", "genießen"],
+    "sehen": ["blicken", "schauen", "betrachten"],
+    "hören": ["lauschen", "vernehmen", "zuhören"],
+    "gehen": ["laufen", "marschieren", "wandern"],
+    "kommen": ["erscheinen", "eintreffen", "nähren"],
+    "machen": ["tun", "ausführen", "verrichten"],
+    "bauen": ["errichten", "konstruieren", "aufbauen"],
+    "lieben": ["mögen", "vergöttern", "bewundern"],
+    "hassen": ["verachten", "ablehnen", "nicht leiden können"],
+    "schön": ["hübsch", "attraktiv", "ansehnlich"],
+    "hässlich": ["unschön", "unansehnlich", "scheußlich"],
+    "klug": ["intelligent", "weise", "schlau"],
+    "dumm": ["unintelligent", "naiv", "töricht"],
+    "neu": ["modern", "aktuell", "zeitgemäß"],
+    "alt": ["veraltet", "antik", "betagt"],
+    "klein": ["winzig", "mini", "gering"],
+    "groß": ["riesig", "enorm", "mächtig"],
+    "reich": ["wohlhabend", "vermögend", "betucht"],
+    "arm": ["mittellos", "bedürftig", "notleidend"],
+    "ruhig": ["still", "gelassen", "friedlich"],
+    "laut": ["lärmend", "geräuschvoll", "dröhnend"],
+    "arbeiten": ["ackern", "schuften", "tätig sein"],
+    "lernen": ["studieren", "pauken", "sich aneignen"],
+    "wissen": ["kennen", "verstehen", "begreifen"],
+    "leben": ["existieren", "weilen", "verweilen"],
+    "sterben": ["verenden", "ableben", "ums Leben kommen"],
+    "helfen": ["unterstützen", "beistehen", "assistieren"],
+    "kaufen": ["erwerben", "besorgen", "anschaffen"],
+    "verkaufen": ["veräußern", "anbieten", "abgeben"],
+    "fahren": ["reisen", "rollen", "sich fortbewegen"],
+    "fliegen": ["schweben", "abheben", "gleiten"],
+    "springen": ["hüpfen", "springen", "springen"],
+    "tanzen": ["wirbeln", "sich drehen", "schwingen"],
+    "sitzen": ["hocken", "platznehmen", "sich niederlassen"],
+    "liegen": ["ruhen", "lagern", "sich befinden"],
+    "stehen": ["aufrichten", "verweilen", "sich befinden"],
+    "fragen": ["anfragen", "bitten", "sich erkundigen"],
+    "antworten": ["entgegnen", "erwidern", "reagieren"],
+    "lachen": ["kichern", "grinsen", "prusten"],
+    "weinen": ["heulen", "schluchzen", "jammern"],
+    "sagen": ["äußern", "mitteilen", "verkünden"],
+    "erzählen": ["berichten", "schildern", "darlegen"],
+    "denken": ["reflektieren", "überlegen", "grübeln"],
+    "suchen": ["stöbern", "fahnden", "erkunden"],
+    "finden": ["entdecken", "ausfindig machen", "aufspüren"],
+    "verlieren": ["verlegen", "versäumen", "einbüßen"],
+    "spielen": ["zocken", "sich vergnügen", "toben"],
+    "arbeiten": ["wirken", "beschäftigt sein", "funktionieren"],
+    "kochen": ["zubereiten", "brutzeln", "garen"],
+    "backen": ["bräunen", "zubereiten", "in den Ofen schieben"],
+    "putzen": ["reinigen", "säubern", "wienern"],
+    "lesen": ["durchblättern", "studieren", "anschauen"],
+    "schreiben": ["notieren", "verfassen", "tippen"],
+    "zeichnen": ["skizzieren", "malen", "entwerfen"],
+    "bauen": ["errichten", "erstellen", "konstruieren"],
+    "zerstören": ["vernichten", "zertrümmern", "ruinieren"],
+    "öffnen": ["aufschließen", "aufmachen", "freigeben"],
+    "schließen": ["zumachen", "verschließen", "verriegeln"],
+    "beginnen": ["starten", "einsetzen", "anfangen"],
+    "beenden": ["abschließen", "stoppen", "vollenden"],
+    "gewinnen": ["siegen", "erreichen", "erlangen"],
+    "verlieren": ["versagen", "unterliegen", "aufgeben"],
+    "denken": ["reflektieren", "sinnieren", "nachgrübeln"],
+    "hoffen": ["erwarten", "sich wünschen", "glauben"],
+    "fürchten": ["sich ängstigen", "besorgt sein", "zittern"],
+    "lieben": ["anhimmeln", "verehren", "wertschätzen"],
+    "träumen": ["fantasieren", "sich vorstellen", "imaginieren"],
+    "arbeiten": ["sich abmühen", "anpacken", "tätig sein"],
+    "reisen": ["verreisen", "erkunden", "ausfliegen"],
+    "denken": ["nachsinnen", "sich überlegen", "ergründen"],
+    "bauen": ["aufbauen", "entwickeln", "errichten"],
+    "ändern": ["modifizieren", "verändern", "anpassen"],
+    "versuchen": ["probieren", "testen", "experimentieren"],
+    "erklären": ["definieren", "verdeutlichen", "beschreiben"],
+    "verstehen": ["begreifen", "kapieren", "nachvollziehen"],
+    "vergessen": ["verdrängen", "übersehen", "nicht behalten"],
+    "erinnern": ["sich besinnen", "zurückdenken", "gedenken"],
+    "lieben": ["mögen", "begehren", "sich hingezogen fühlen"],
+    "hassen": ["verabscheuen", "nicht ausstehen können", "abstoßen"],
+    "vertrauen": ["glauben", "sich verlassen", "trauen"],
+    "zweifeln": ["misstrauen", "hinterfragen", "anzweifeln"],
+    "bauen": ["konstruieren", "erschaffen", "formen"],
+    "zerstören": ["zerbrechen", "niederreißen", "verwüsten"]    
+    
+};
+
+
+        function findSynonym() {
+            const input = document.getElementById("wordInput").value.toLowerCase().trim();
+            const result = document.getElementById("result");
+
+            if (input === "") {
+                result.innerHTML = "Silakan masukkan sebuah kata.";
+                return;
+            }
+
+            if (synonyms[input]) {
+                const synonymList = synonyms[input].join(", ");
+                result.innerHTML = `
+                    <div>Sinonim dari <span style="color:#ffd54f; font-weight:bold">${input}</span>: ${synonymList}</div>
+                `;
+            } else {
+                result.innerHTML = "Sinonim tidak ditemukan.";
+            }
+        }
+    </script>
+</body>
+</html>
